@@ -7,7 +7,8 @@
     "email": "alan_tomaiz@hotmail.com"
   },
   "scripts": {
-    "dev:run": "ts-node-dev --transpile-only --ignore-watch node_modules src/app.ts"
+    "dev:run": "ts-node-dev --transpile-only --ignore-watch node_modules src/app.ts",
+    "dev:test-device": "ts-node-dev --transpile-only --ignore-watch node_modules test/device.ts"
   },
   "dependencies": {
     "castv2-client": "^1.2.0",
