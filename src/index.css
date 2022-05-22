@@ -1,0 +1,146 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;400;500;700;900&display=swap');
+
+:root {
+  --dark: #41414D;
+  --lightest: #2a2f32;
+  --grey: #E1E1E6;
+  --purple: #6633cc;
+  --orange: #ef6d22;
+  --green: #67e480;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  outline: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+body {
+  color: #E1E1E6;
+  background: #22272e;
+  -webkit-font-smoothing: antialiased;
+}
+
+body, input, button {
+  font: 400 16px 'Roboto', sans-serif;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+
+  border: 1px solid var(--purple);
+  overflow: hidden;
+}
+
+.content {
+  position: relative;
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+
+  background-image: url('./assets/background.jpg');
+  background-size: cover;
+  filter: brightness(30%);
+}
+
+.tray-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  -webkit-app-region: drag;
+
+  width: 100%;
+  height: 40px;
+  padding: 8px 0;
+  font-size: 13px;
+  background: var(--lightest);
+}
+
+.tray-container strong {
+  grid-column: 2;
+  text-align: center;
+  font-weight: 400;
+  color: var(--gray);
+}
+
+.tray-container .tray-actions {
+  display: flex;
+
+  justify-self: self-end;
+  padding-right: 16px;
+}
+
+.tray-actions button {
+  display: grid;
+  place-items: center;
+
+  width: 25px;
+  height: 25px;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: transparent;
+  color: var(--gray);
+  -webkit-app-region: no-drag;
+}
+
+.tray-actions button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.tray-actions button + button {
+  margin-left: 8px;
+}
+
+.cast-conn {
+  position: absolute;
+  right: 15px;
+  top: 15px;
+
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  cursor: pointer;
+
+  translate: .4s;
+}
+
+.cast-conn[data-connected]::before {
+  content: '';
+
+  position: absolute;
+  top: 15px;
+  left: 18px;
+
+  display: block;
+  width: 13px;
+  height: 10px;
+
+  background: #fff;
+  opacity: .9;
+  border-radius: 2px;
+  z-index: -1;
+
+  translate: .4s;
+}
+
+.cast-conn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
