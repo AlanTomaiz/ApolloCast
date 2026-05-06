@@ -18,6 +18,8 @@ interface IContext {
   connectToDevice: (device: IDevice) => Promise<boolean>;
   disconnectFromDevice: () => void;
   selectVideoFile: () => Promise<boolean>;
+  startStreaming: () => Promise<boolean>;
+  stopStreaming: () => void;
   setConnectionStatus: (status: ConnectionStatus, reason?: string) => void;
   setMediaSelection: (filePath: string, fileName: string) => void;
   clearMediaSelection: () => void;
@@ -50,6 +52,28 @@ const toPtBrConnectionError = (error: unknown): string => {
 
 const toPtBrVideoPickerError = (): string =>
   'Falha ao selecionar arquivo de video';
+
+const toPtBrStreamingError = (error: unknown): string => {
+  if (!(error instanceof Error)) {
+    return 'Falha ao iniciar transmissao';
+  }
+
+  const normalizedMessage = (error.message || '').toLowerCase();
+
+  if (normalizedMessage.includes('conectado')) {
+    return 'Conecte em um dispositivo para iniciar transmissao';
+  }
+
+  if (normalizedMessage.includes('arquivo')) {
+    return 'Selecione um arquivo de video antes de transmitir';
+  }
+
+  if (normalizedMessage.includes('ip local')) {
+    return 'Falha ao identificar IP local para transmitir';
+  }
+
+  return 'Falha ao iniciar transmissao';
+};
 
 const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
   children
@@ -148,6 +172,52 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
     }
   }, []);
 
+  const startStreaming = React.useCallback(async () => {
+    if (state.connection.status !== 'connected') {
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: 'Conecte em um dispositivo para iniciar transmissao'
+      });
+      return false;
+    }
+
+    if (!state.media.filePath) {
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: 'Selecione um arquivo de video antes de transmitir'
+      });
+      return false;
+    }
+
+    dispatch({ type: 'MEDIA_STATUS_SET', status: 'loading' });
+
+    try {
+      await window.render.startStreaming(
+        state.media.filePath,
+        state.media.fileName || undefined
+      );
+      dispatch({ type: 'MEDIA_STATUS_SET', status: 'playing' });
+      console.info('[Media] Transmissao em execucao');
+      return true;
+    } catch (error) {
+      console.error('[Media] Falha ao iniciar transmissao', error);
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: toPtBrStreamingError(error)
+      });
+      return false;
+    }
+  }, [state.connection.status, state.media.fileName, state.media.filePath]);
+
+  const stopStreaming = React.useCallback(() => {
+    window.render.stopStreaming();
+    dispatch({ type: 'MEDIA_STATUS_SET', status: 'stopped' });
+    console.info('[Media] Transmissao interrompida');
+  }, []);
+
   const setConnectionStatus = React.useCallback(
     (status: ConnectionStatus, reason?: string) => {
       dispatch({ type: 'CONNECTION_STATUS_SET', status, reason });
@@ -231,6 +301,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
       isMounted = false;
       console.info('[Discovery] Cleanup iniciado');
       window.render.stopDiscovery();
+      window.render.stopStreaming();
       window.render.disconnectDevice();
       dispatch({ type: 'DISCOVERY_STOPPED' });
       dispatch({ type: 'CONNECTION_STATUS_SET', status: 'disconnected' });
@@ -248,6 +319,8 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
         connectToDevice,
         disconnectFromDevice,
         selectVideoFile,
+        startStreaming,
+        stopStreaming,
         setConnectionStatus,
         setMediaSelection,
         clearMediaSelection,

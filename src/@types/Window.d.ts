@@ -18,6 +18,8 @@ declare global {
       stopDiscovery: () => void;
       scanner: (callback: DiscoveryCallback) => void;
       pickVideoFile: () => Promise<SelectedVideoFile | null>;
+      startStreaming: (filePath: string, fileName?: string) => Promise<void>;
+      stopStreaming: () => void;
       connectDevice: (host: string) => Promise<void>;
       disconnectDevice: () => void;
     };

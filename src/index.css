@@ -177,10 +177,36 @@ body, input, button {
   transform: none;
 }
 
+.streamBTN {
+  position: absolute;
+  top: calc(50% + 56px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--green);
+  color: #183222;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.streamBTN:hover {
+  opacity: 0.95;
+}
+
+.streamBTN:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .media-selection-info {
   position: absolute;
   left: 50%;
-  bottom: 24px;
+  bottom: 40px;
   transform: translateX(-50%);
   font-size: 12px;
   color: #cfd4d9;
@@ -189,6 +215,15 @@ body, input, button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.media-status-info {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: #cfd4d9;
 }
 
 .media-selection-error {

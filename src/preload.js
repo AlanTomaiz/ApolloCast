@@ -1,11 +1,209 @@
 const { contextBridge, ipcRenderer } = require('electron');
 const bonjour = require('bonjour');
 const { Client } = require('castv2-client');
+const { DefaultMediaReceiver } = require('castv2-client');
+const fs = require('fs');
+const http = require('http');
+const os = require('os');
+const path = require('path');
 
 const bonjourInstance = bonjour();
 let discoveryBrowser = null;
 let activeCastClient = null;
 let activeDeviceHost = null;
+let activeMediaServer = null;
+let activeMediaPlayer = null;
+
+const MIME_BY_EXTENSION = {
+  '.mp4': 'video/mp4',
+  '.mkv': 'video/x-matroska',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.avi': 'video/x-msvideo',
+};
+
+const getMimeType = filePath => {
+  const extension = path.extname(filePath || '').toLowerCase();
+  return MIME_BY_EXTENSION[extension] || 'video/mp4';
+};
+
+const getLocalIpAddress = () => {
+  const networkInterfaces = os.networkInterfaces();
+
+  for (const interfaceName of Object.keys(networkInterfaces)) {
+    const interfaceAddresses = networkInterfaces[interfaceName] || [];
+
+    for (const currentAddress of interfaceAddresses) {
+      if (currentAddress.family === 'IPv4' && !currentAddress.internal) {
+        return currentAddress.address;
+      }
+    }
+  }
+
+  return null;
+};
+
+const stopMediaServer = () => {
+  if (activeMediaServer) {
+    activeMediaServer.close();
+    activeMediaServer = null;
+    console.info('[Media] Servidor local de midia encerrado');
+  }
+};
+
+const stopMediaPlayback = () => {
+  if (activeMediaPlayer) {
+    activeMediaPlayer.stop(() => {
+      console.info('[Media] Player de transmissao interrompido');
+    });
+    activeMediaPlayer = null;
+  }
+
+  stopMediaServer();
+};
+
+const startMediaServer = filePath =>
+  new Promise((resolve, reject) => {
+    const localIpAddress = getLocalIpAddress();
+
+    if (!localIpAddress) {
+      reject(new Error('Nao foi possivel identificar IP local para transmitir'));
+      return;
+    }
+
+    fs.stat(filePath, (statError, stats) => {
+      if (statError || !stats.isFile()) {
+        reject(new Error('Arquivo de video invalido para transmissao'));
+        return;
+      }
+
+      const server = http.createServer((request, response) => {
+        if (request.url !== '/video') {
+          response.statusCode = 404;
+          response.end('Not Found');
+          return;
+        }
+
+        const range = request.headers.range;
+        const contentType = getMimeType(filePath);
+
+        if (!range) {
+          response.writeHead(200, {
+            'Content-Length': stats.size,
+            'Content-Type': contentType,
+            'Accept-Ranges': 'bytes',
+          });
+          fs.createReadStream(filePath).pipe(response);
+          return;
+        }
+
+        const bytesPrefix = 'bytes=';
+        if (!range.startsWith(bytesPrefix)) {
+          response.statusCode = 416;
+          response.end();
+          return;
+        }
+
+        const rangeParts = range.replace(bytesPrefix, '').split('-');
+        const start = Number.parseInt(rangeParts[0], 10);
+        const end = rangeParts[1]
+          ? Number.parseInt(rangeParts[1], 10)
+          : stats.size - 1;
+
+        if (
+          Number.isNaN(start) ||
+          Number.isNaN(end) ||
+          start < 0 ||
+          end >= stats.size ||
+          start > end
+        ) {
+          response.statusCode = 416;
+          response.end();
+          return;
+        }
+
+        response.writeHead(206, {
+          'Content-Range': `bytes ${start}-${end}/${stats.size}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': end - start + 1,
+          'Content-Type': contentType,
+        });
+
+        fs.createReadStream(filePath, { start, end }).pipe(response);
+      });
+
+      server.on('error', (serverError) => {
+        reject(serverError);
+      });
+
+      server.listen(0, () => {
+        const address = server.address();
+
+        if (!address || typeof address === 'string') {
+          server.close();
+          reject(new Error('Falha ao iniciar servidor local de midia'));
+          return;
+        }
+
+        const mediaUrl = `http://${localIpAddress}:${address.port}/video`;
+        activeMediaServer = server;
+        console.info(`[Media] Servidor local iniciado em ${mediaUrl}`);
+        resolve(mediaUrl);
+      });
+    });
+  });
+
+const startCastStreaming = async (filePath, fileName) => {
+  console.info(
+    `[Media] Solicitacao de transmissao recebida: ${fileName || filePath || 'arquivo-desconhecido'}`
+  );
+
+  if (!activeCastClient) {
+    throw new Error('Nenhum dispositivo conectado para iniciar transmissao');
+  }
+
+  if (!filePath) {
+    throw new Error('Arquivo de video e obrigatorio para transmissao');
+  }
+
+  stopMediaPlayback();
+
+  const mediaUrl = await startMediaServer(filePath);
+  const contentType = getMimeType(filePath);
+
+  return new Promise((resolve, reject) => {
+    activeCastClient.launch(DefaultMediaReceiver, (launchError, player) => {
+      if (launchError) {
+        stopMediaServer();
+        reject(launchError);
+        return;
+      }
+
+      const media = {
+        contentId: mediaUrl,
+        contentType,
+        streamType: 'BUFFERED',
+        metadata: {
+          type: 0,
+          metadataType: 0,
+          title: fileName || path.basename(filePath),
+        },
+      };
+
+      player.load(media, { autoplay: true }, (loadError) => {
+        if (loadError) {
+          stopMediaServer();
+          reject(loadError);
+          return;
+        }
+
+        activeMediaPlayer = player;
+        console.info('[Media] Transmissao iniciada com sucesso');
+        resolve();
+      });
+    });
+  });
+};
 
 const disconnectCastSession = () => {
   console.info('[Cast] Solicitacao de desconexao recebida');
@@ -13,9 +211,11 @@ const disconnectCastSession = () => {
   if (!activeCastClient) {
     console.info('[Cast] Nenhuma sessao ativa para desconectar');
     activeDeviceHost = null;
+    stopMediaPlayback();
     return;
   }
 
+  stopMediaPlayback();
   activeCastClient.close();
   activeCastClient = null;
   activeDeviceHost = null;
@@ -109,6 +309,9 @@ contextBridge.exposeInMainWorld('render', {
     startDiscovery(callback);
   },
   pickVideoFile: () => ipcRenderer.invoke('pickVideoFile'),
+  startStreaming: (filePath, fileName) =>
+    startCastStreaming(filePath, fileName),
+  stopStreaming: () => stopMediaPlayback(),
   connectDevice: host => connectCastSession(host),
   disconnectDevice: () => disconnectCastSession(),
 });
