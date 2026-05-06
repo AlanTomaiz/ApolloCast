@@ -23,7 +23,7 @@ interface IContext {
 
 const APIContext = React.createContext<IContext>({} as IContext);
 
-const APIProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) => {
   const [state, dispatch] = React.useReducer(castReducer, initialCastState);
 
   const chromecasts = state.discovery.devices;
@@ -68,15 +68,27 @@ const APIProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   React.useEffect(() => {
     dispatch({ type: 'DISCOVERY_STARTED' });
 
-    window.render.scanner((service: IService) => {
-      const newDevice = {
-        host: service.addresses[0],
-        name: service.txt.fn,
-        type: service.txt.md,
-      };
+    try {
+      window.render.startDiscovery((service: IService) => {
+        const newDevice = {
+          host: service.addresses[0],
+          name: service.txt.fn,
+          type: service.txt.md,
+        };
 
-      dispatch({ type: 'DEVICE_FOUND', device: newDevice });
-    });
+        dispatch({ type: 'DEVICE_FOUND', device: newDevice });
+      });
+    } catch (error) {
+      dispatch({
+        type: 'DISCOVERY_FAILED',
+        reason: error instanceof Error ? error.message : 'Failed to start discovery',
+      });
+    }
+
+    return () => {
+      window.render.stopDiscovery();
+      dispatch({ type: 'DISCOVERY_STOPPED' });
+    };
   }, []);
 
   return (
