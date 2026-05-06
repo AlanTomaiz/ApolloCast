@@ -24,13 +24,16 @@
   },
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "icon": "./src/assets/icon"
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-wix",
           "config": {
             "name": "ApolloCast",
             "manufacturer": "Alanderson Tomaiz",
+            "icon": "./src/assets/icon.ico",
             "language": 1046,
             "programFilesFolderName": "ApolloCast",
             "shortcutFolderName": "ApolloCast",
