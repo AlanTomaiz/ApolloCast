@@ -1,3 +1,14 @@
+@font-face {
+  font-family: 'Roboto';
+  src:
+    local('Roboto'),
+    local('Roboto Variable'),
+    url('./assets/fonts/roboto/Roboto-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --dark: #41414D;
   --lightest: #2a2f32;
@@ -23,7 +34,8 @@ body {
 }
 
 body, input, button {
-  font: 400 16px 'Roboto', sans-serif;
+  font: 400 16px 'Roboto', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
 }
 
 .container {
