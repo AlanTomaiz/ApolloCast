@@ -10,7 +10,7 @@
     "url": "https://github.com/AlanTomaiz/ApolloCast"
   },
   "scripts": {
-    "start": "electron-forge start",
+    "start": "NODE_NO_WARNINGS=1 ELECTRON_DISABLE_GPU=1 LIBGL_DRI3_DISABLE=1 electron-forge start -- --disable-gpu --disable-gpu-sandbox --disable-dev-shm-usage --in-process-gpu --no-sandbox",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make:win": "electron-forge make --platform=win32 --arch=x64",
