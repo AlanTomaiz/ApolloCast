@@ -1,9 +1,22 @@
-import { app, BrowserWindow, nativeImage, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 let mainWindow: BrowserWindow;
+let isMainWindowLoaded = false;
+const mainWindowReadyResolvers: Array<() => void> = [];
+
+const notifyMainWindowLoaded = (): void => {
+  isMainWindowLoaded = true;
+
+  while (mainWindowReadyResolvers.length > 0) {
+    const resolve = mainWindowReadyResolvers.shift();
+    if (resolve) {
+      resolve();
+    }
+  }
+};
 
 const createWindow = (): void => {
   const icon = nativeImage.createFromPath(`${app.getAppPath()}/build/icon.png`);
@@ -31,6 +44,10 @@ const createWindow = (): void => {
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
+  mainWindow.webContents.once('did-finish-load', () => {
+    notifyMainWindowLoaded();
+  });
+
   // Open the DevTools.
   mainWindow.webContents.openDevTools();
 };
@@ -49,4 +66,16 @@ ipcMain.handle('closeApp', () => {
 
 ipcMain.handle('minimize', () => {
   mainWindow.minimize();
+});
+
+ipcMain.handle('waitForMainWindowLoaded', async () => {
+  if (isMainWindowLoaded) {
+    return true;
+  }
+
+  await new Promise<void>((resolve) => {
+    mainWindowReadyResolvers.push(resolve);
+  });
+
+  return true;
 });

@@ -8,6 +8,7 @@ declare global {
     render: {
       close: () => void;
       minimize: () => void;
+      waitForMainWindowLoaded: () => Promise<boolean>;
       startDiscovery: (callback: DiscoveryCallback) => void;
       stopDiscovery: () => void;
       scanner: (callback: DiscoveryCallback) => void;

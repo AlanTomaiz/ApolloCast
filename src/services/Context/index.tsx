@@ -24,6 +24,28 @@ interface IContext {
 
 const APIContext = React.createContext<IContext>({} as IContext);
 
+const toPtBrConnectionError = (error: unknown): string => {
+  if (!(error instanceof Error)) {
+    return 'Falha ao conectar ao dispositivo';
+  }
+
+  const rawMessage = error.message || '';
+  const normalizedMessage = rawMessage.toLowerCase();
+
+  if (
+    normalizedMessage.includes('timeout') ||
+    normalizedMessage.includes('tempo limite')
+  ) {
+    return 'Tempo limite de conexao excedido';
+  }
+
+  if (normalizedMessage.includes('host')) {
+    return 'Host do dispositivo e obrigatorio';
+  }
+
+  return 'Falha ao conectar ao dispositivo';
+};
+
 const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
   children
 }) => {
@@ -44,7 +66,15 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
   }, []);
 
   const connectToDevice = React.useCallback(async (device: IDevice) => {
+    console.info(
+      `[Cast] Fluxo de conexao iniciado para dispositivo: ${device?.name || 'desconhecido'} (${device?.host || 'desconhecido'})`
+    );
+
     if (!device?.host) {
+      console.warn(
+        '[Cast] Dispositivo invalido para tentativa de conexao',
+        device
+      );
       dispatch({
         type: 'CONNECTION_STATUS_SET',
         status: 'failed',
@@ -59,23 +89,27 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
     try {
       await window.render.connectDevice(device.host);
       dispatch({ type: 'CONNECTION_STATUS_SET', status: 'connected' });
+      console.info(`[Cast] Conectado ao host do dispositivo: ${device.host}`);
       return true;
     } catch (error) {
+      console.error('[Cast] Falha na conexao', error);
       dispatch({
         type: 'CONNECTION_STATUS_SET',
         status: 'failed',
-        reason: error instanceof Error ? error.message : 'Falha ao conectar'
+        reason: toPtBrConnectionError(error)
       });
       return false;
     }
   }, []);
 
   const disconnectFromDevice = React.useCallback(() => {
+    console.info('[Cast] Fluxo de desconexao iniciado');
     window.render.disconnectDevice();
     dispatch({
       type: 'CONNECTION_STATUS_SET',
       status: 'disconnected'
     });
+    console.info('[Cast] Fluxo de desconexao finalizado');
   }, []);
 
   const setConnectionStatus = React.useCallback(
@@ -104,31 +138,67 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
   );
 
   React.useEffect(() => {
-    dispatch({ type: 'DISCOVERY_STARTED' });
+    let isMounted = true;
 
-    try {
-      window.render.startDiscovery((service: IService) => {
-        const newDevice = {
-          host: service.addresses[0],
-          name: service.txt.fn,
-          type: service.txt.md
-        };
+    const bootstrapDiscovery = async () => {
+      dispatch({ type: 'DISCOVERY_STARTED' });
+      console.info('[Discovery] Bootstrap iniciado');
 
-        dispatch({ type: 'DEVICE_FOUND', device: newDevice });
-      });
-    } catch (error) {
-      dispatch({
-        type: 'DISCOVERY_FAILED',
-        reason:
-          error instanceof Error ? error.message : 'Failed to start discovery'
-      });
-    }
+      try {
+        await window.render.waitForMainWindowLoaded();
+
+        if (!isMounted) {
+          return;
+        }
+
+        console.info(
+          '[Discovery] Janela principal totalmente carregada, iniciando scan'
+        );
+
+        window.render.startDiscovery((service: IService) => {
+          const host = service.addresses?.[0];
+          const name = service.txt?.fn;
+          const type = service.txt?.md;
+
+          if (!host || !name || !type) {
+            console.warn(
+              '[Discovery] Ignorando payload de servico malformado',
+              service
+            );
+            return;
+          }
+
+          dispatch({
+            type: 'DEVICE_FOUND',
+            device: {
+              host,
+              name,
+              type
+            }
+          });
+        });
+      } catch (error) {
+        console.error('[Discovery] Falha ao iniciar discovery', error);
+        dispatch({
+          type: 'DISCOVERY_FAILED',
+          reason:
+            error instanceof Error
+              ? 'Falha ao iniciar discovery'
+              : 'Falha ao iniciar discovery'
+        });
+      }
+    };
+
+    bootstrapDiscovery();
 
     return () => {
+      isMounted = false;
+      console.info('[Discovery] Cleanup iniciado');
       window.render.stopDiscovery();
       window.render.disconnectDevice();
       dispatch({ type: 'DISCOVERY_STOPPED' });
       dispatch({ type: 'CONNECTION_STATUS_SET', status: 'disconnected' });
+      console.info('[Discovery] Cleanup finalizado');
     };
   }, []);
 
