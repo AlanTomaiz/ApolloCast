@@ -105,6 +105,26 @@ const Player: React.FC = () => {
     };
   }, [state.media.fileName]);
 
+  React.useEffect(() => {
+    const root = document.documentElement;
+
+    if (metadata?.imageUrl) {
+      root.style.setProperty(
+        '--dynamic-bg-image',
+        `url("${metadata.imageUrl}")`
+      );
+      return;
+    }
+
+    root.style.removeProperty('--dynamic-bg-image');
+  }, [metadata?.imageUrl]);
+
+  React.useEffect(() => {
+    return () => {
+      document.documentElement.style.removeProperty('--dynamic-bg-image');
+    };
+  }, []);
+
   const mediaTitle = metadata?.title || 'Sem titulo';
   const mediaSubtitle = metadata?.kind === 'series' ? metadata.subtitle : null;
 
@@ -112,6 +132,8 @@ const Player: React.FC = () => {
   const progressPercent =
     duration > 0 ? Math.min((displayCurrentTime / duration) * 100, 100) : 0;
   const volumePercent = Math.max(0, Math.min(volume, 100));
+  const blueFill = '#5e73e8';
+  const blueTrack = 'rgba(71, 88, 186, 0.28)';
 
   const formatTime = React.useCallback((seconds: number) => {
     const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -247,7 +269,7 @@ const Player: React.FC = () => {
               className="player-progress-slider"
               type="range"
               style={{
-                background: `linear-gradient(to right, #6633cc 0%, #6633cc ${progressPercent}%, rgba(102, 51, 204, 0.22) ${progressPercent}%, rgba(102, 51, 204, 0.22) 100%)`
+                background: `linear-gradient(to right, ${blueFill} 0%, ${blueFill} ${progressPercent}%, ${blueTrack} ${progressPercent}%, ${blueTrack} 100%)`
               }}
               min={0}
               max={Math.max(duration, 0)}
@@ -285,7 +307,7 @@ const Player: React.FC = () => {
                   min={0}
                   max={100}
                   style={{
-                    background: `linear-gradient(to right, #6633cc 0%, #6633cc ${volumePercent}%, rgba(102, 51, 204, 0.22) ${volumePercent}%, rgba(102, 51, 204, 0.22) 100%)`
+                    background: `linear-gradient(to right, ${blueFill} 0%, ${blueFill} ${volumePercent}%, ${blueTrack} ${volumePercent}%, ${blueTrack} 100%)`
                   }}
                   value={volume}
                   onChange={handleVolumeChange}

@@ -102,7 +102,7 @@
   margin-top: -5px;
   border: 0;
   border-radius: 50%;
-  background: #6633cc;
+  background: #5e73e8;
 }
 
 .player-progress-slider::-moz-range-track {
@@ -117,7 +117,7 @@
   height: 14px;
   border: 0;
   border-radius: 50%;
-  background: #6633cc;
+  background: #5e73e8;
 }
 
 .player-progress-slider:disabled {
@@ -213,7 +213,7 @@
   margin-top: -4px;
   border: 0;
   border-radius: 50%;
-  background: #6633cc;
+  background: #5e73e8;
 }
 
 .player-volume-slider::-moz-range-track {
@@ -228,7 +228,7 @@
   height: 12px;
   border: 0;
   border-radius: 50%;
-  background: #6633cc;
+  background: #5e73e8;
 }
 
 .player-volume-slider:disabled {
