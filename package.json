@@ -14,6 +14,7 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "make:win": "cross-env NODE_OPTIONS=--no-deprecation electron-forge make --platform=win32 --arch=x64 --targets=@electron-forge/maker-wix && copy /Y out\\make\\wix\\x64\\*.msi out\\",
+    "make:win:zip": "cross-env NODE_OPTIONS=--no-deprecation electron-forge make --platform=win32 --arch=x64 --targets=@electron-forge/maker-zip && copy /Y out\\make\\zip\\win32\\x64\\*.zip out\\",
     "make:linux": "electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-deb && cp out/make/deb/x64/*.deb out/",
     "make:mac": "electron-forge make --platform=darwin --arch=x64",
     "publish": "electron-forge publish",
