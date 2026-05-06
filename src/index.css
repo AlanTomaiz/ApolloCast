@@ -113,6 +113,7 @@ body, input, button {
   position: absolute;
   right: 15px;
   top: 15px;
+  z-index: 6;
 
   border: 0;
   background: transparent;
@@ -156,83 +157,26 @@ body, input, button {
 .videoBTN {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  border: 0;
-  border-radius: 6px;
-  padding: 10px 14px;
-  background: var(--orange);
   color: #fff;
+  font-size: 18px;
+  font-weight: 300;
+  padding: 15px 22px;
+  border: 0;
+  background: var(--purple);
   cursor: pointer;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0.9;
 }
 
 .videoBTN:hover {
-  opacity: 0.95;
-  transform: translateY(-1px);
+  opacity: 1;
 }
 
 .videoBTN:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-}
-
-.streamBTN {
-  position: absolute;
-  top: calc(50% + 56px);
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 6px;
-  padding: 10px 14px;
-  background: var(--green);
-  color: #183222;
-  cursor: pointer;
-  transition: opacity 0.2s ease;
-}
-
-.streamBTN:hover {
-  opacity: 0.95;
-}
-
-.streamBTN:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.media-selection-info {
-  position: absolute;
-  left: 50%;
-  bottom: 40px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #cfd4d9;
-  text-align: center;
-  max-width: calc(100vw - 32px);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.media-status-info {
-  position: absolute;
-  left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #cfd4d9;
-}
-
-.media-selection-error {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  color: #ff8e8e;
 }
 
 .modal {
