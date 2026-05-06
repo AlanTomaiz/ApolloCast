@@ -137,6 +137,46 @@ const seekMediaPlayback = (seconds) =>
     });
   });
 
+const getCastVolume = () =>
+  new Promise((resolve, reject) => {
+    if (!activeCastClient) {
+      resolve(null);
+      return;
+    }
+
+    activeCastClient.getVolume((volumeError, volumeInfo) => {
+      if (volumeError) {
+        reject(volumeError);
+        return;
+      }
+
+      resolve(Number(volumeInfo?.level ?? 1));
+    });
+  });
+
+const setCastVolume = (volumeLevel) =>
+  new Promise((resolve, reject) => {
+    if (!activeCastClient) {
+      reject(new Error('Nenhuma conexao ativa para ajustar volume'));
+      return;
+    }
+
+    const normalizedLevel = Math.max(0, Math.min(1, Number(volumeLevel)));
+
+    activeCastClient.setVolume(
+      { level: normalizedLevel, muted: normalizedLevel === 0 },
+      (setVolumeError) => {
+        if (setVolumeError) {
+          reject(setVolumeError);
+          return;
+        }
+
+        console.info(`[Media] Volume ajustado para ${normalizedLevel}`);
+        resolve();
+      }
+    );
+  });
+
 const startMediaServer = filePath =>
   new Promise((resolve, reject) => {
     const localIpAddress = getLocalIpAddress();
@@ -390,6 +430,8 @@ contextBridge.exposeInMainWorld('render', {
   resumeStreaming: () => resumeMediaPlayback(),
   getStreamingStatus: () => getMediaPlaybackStatus(),
   seekStreaming: (seconds) => seekMediaPlayback(seconds),
+  getStreamingVolume: () => getCastVolume(),
+  setStreamingVolume: (volumeLevel) => setCastVolume(volumeLevel),
   stopStreaming: () => stopMediaPlayback(),
   connectDevice: host => connectCastSession(host),
   disconnectDevice: () => disconnectCastSession(),

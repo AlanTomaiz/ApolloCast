@@ -16,6 +16,8 @@ const Player: React.FC = () => {
     resumeStreaming,
     getStreamingStatus,
     seekStreaming,
+    getStreamingVolume,
+    setStreamingVolume,
     stopStreaming,
     clearMediaSelection
   } = useRender();
@@ -109,6 +111,7 @@ const Player: React.FC = () => {
   const displayCurrentTime = isSeeking ? previewSeekTime : currentTime;
   const progressPercent =
     duration > 0 ? Math.min((displayCurrentTime / duration) * 100, 100) : 0;
+  const volumePercent = Math.max(0, Math.min(volume, 100));
 
   const formatTime = React.useCallback((seconds: number) => {
     const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -153,6 +156,28 @@ const Player: React.FC = () => {
     };
   }, [hasMediaSelected, isSeeking, syncPlaybackStatus]);
 
+  React.useEffect(() => {
+    if (!isConnected) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const syncVolume = async () => {
+      const currentVolume = await getStreamingVolume();
+
+      if (!cancelled && currentVolume !== null) {
+        setVolume(Math.round(currentVolume * 100));
+      }
+    };
+
+    syncVolume();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getStreamingVolume, isConnected]);
+
   const handleProgressChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setIsSeeking(true);
@@ -175,6 +200,15 @@ const Player: React.FC = () => {
       syncPlaybackStatus();
     },
     [seekStreaming, syncPlaybackStatus]
+  );
+
+  const handleVolumeChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const nextVolume = Number(event.target.value);
+      setVolume(nextVolume);
+      void setStreamingVolume(nextVolume / 100);
+    },
+    [setStreamingVolume]
   );
 
   return (
@@ -213,7 +247,7 @@ const Player: React.FC = () => {
               className="player-progress-slider"
               type="range"
               style={{
-                background: `linear-gradient(to right, #f08a22 0%, #f08a22 ${progressPercent}%, rgba(255, 255, 255, 0.25) ${progressPercent}%, rgba(255, 255, 255, 0.25) 100%)`
+                background: `linear-gradient(to right, #6633cc 0%, #6633cc ${progressPercent}%, rgba(102, 51, 204, 0.22) ${progressPercent}%, rgba(102, 51, 204, 0.22) 100%)`
               }}
               min={0}
               max={Math.max(duration, 0)}
@@ -246,11 +280,16 @@ const Player: React.FC = () => {
               <div className="player-volume-wrap">
                 <FiVolume2 size={20} />
                 <input
+                  className="player-volume-slider"
                   type="range"
                   min={0}
                   max={100}
+                  style={{
+                    background: `linear-gradient(to right, #6633cc 0%, #6633cc ${volumePercent}%, rgba(102, 51, 204, 0.22) ${volumePercent}%, rgba(102, 51, 204, 0.22) 100%)`
+                  }}
                   value={volume}
-                  onChange={(event) => setVolume(Number(event.target.value))}
+                  onChange={handleVolumeChange}
+                  disabled={!isConnected}
                 />
               </div>
             </div>

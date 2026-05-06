@@ -29,6 +29,8 @@ declare global {
       resumeStreaming: () => Promise<void>;
       getStreamingStatus: () => Promise<StreamingStatus | null>;
       seekStreaming: (seconds: number) => Promise<void>;
+      getStreamingVolume: () => Promise<number | null>;
+      setStreamingVolume: (volumeLevel: number) => Promise<void>;
       stopStreaming: () => void;
       connectDevice: (host: string) => Promise<void>;
       disconnectDevice: () => void;

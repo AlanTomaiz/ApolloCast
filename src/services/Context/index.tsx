@@ -23,6 +23,8 @@ interface IContext {
   resumeStreaming: () => Promise<boolean>;
   getStreamingStatus: () => Promise<StreamingStatus | null>;
   seekStreaming: (seconds: number) => Promise<boolean>;
+  getStreamingVolume: () => Promise<number | null>;
+  setStreamingVolume: (volumeLevel: number) => Promise<boolean>;
   stopStreaming: () => void;
   setConnectionStatus: (status: ConnectionStatus, reason?: string) => void;
   setMediaSelection: (filePath: string, fileName: string) => void;
@@ -86,6 +88,8 @@ const toPtBrPlaybackControlError = (action: 'pause' | 'resume'): string => {
 
   return 'Falha ao retomar transmissao';
 };
+
+const toPtBrVolumeError = (): string => 'Falha ao ajustar volume';
 
 const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
   children
@@ -282,6 +286,42 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
     [state.connection.status]
   );
 
+  const getStreamingVolume = React.useCallback(async () => {
+    try {
+      return await window.render.getStreamingVolume();
+    } catch (error) {
+      console.error('[Media] Falha ao consultar volume', error);
+      return null;
+    }
+  }, []);
+
+  const setStreamingVolume = React.useCallback(
+    async (volumeLevel: number) => {
+      if (state.connection.status !== 'connected') {
+        dispatch({
+          type: 'MEDIA_STATUS_SET',
+          status: 'failed',
+          reason: 'Conecte em um dispositivo para ajustar volume'
+        });
+        return false;
+      }
+
+      try {
+        await window.render.setStreamingVolume(volumeLevel);
+        return true;
+      } catch (error) {
+        console.error('[Media] Falha ao ajustar volume', error);
+        dispatch({
+          type: 'MEDIA_STATUS_SET',
+          status: 'failed',
+          reason: toPtBrVolumeError()
+        });
+        return false;
+      }
+    },
+    [state.connection.status]
+  );
+
   const pauseStreaming = React.useCallback(async () => {
     if (state.connection.status !== 'connected') {
       dispatch({
@@ -438,6 +478,8 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
         resumeStreaming,
         getStreamingStatus,
         seekStreaming,
+        getStreamingVolume,
+        setStreamingVolume,
         stopStreaming,
         setConnectionStatus,
         setMediaSelection,
