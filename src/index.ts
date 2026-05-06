@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage } from 'electron';
+import path from 'path';
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
@@ -78,4 +79,27 @@ ipcMain.handle('waitForMainWindowLoaded', async () => {
   });
 
   return true;
+});
+
+ipcMain.handle('pickVideoFile', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      {
+        name: 'Videos',
+        extensions: ['mp4', 'mkv', 'webm', 'mov', 'avi']
+      }
+    ]
+  });
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+
+  const selectedPath = result.filePaths[0];
+
+  return {
+    path: selectedPath,
+    name: path.basename(selectedPath)
+  };
 });

@@ -3,6 +3,11 @@ import { IService } from './Render';
 
 type DiscoveryCallback = (service: IService) => void;
 
+export interface SelectedVideoFile {
+  path: string;
+  name: string;
+}
+
 declare global {
   interface Window {
     render: {
@@ -12,6 +17,7 @@ declare global {
       startDiscovery: (callback: DiscoveryCallback) => void;
       stopDiscovery: () => void;
       scanner: (callback: DiscoveryCallback) => void;
+      pickVideoFile: () => Promise<SelectedVideoFile | null>;
       connectDevice: (host: string) => Promise<void>;
       disconnectDevice: () => void;
     };

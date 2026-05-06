@@ -3,6 +3,7 @@
 
 # Compiled
 build
+out
 
 # Dependency
 node_modules

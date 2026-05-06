@@ -51,14 +51,14 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
             <p className="modal-error">{state.connection.reason}</p>
           )}
 
-          {state.connection.status === 'connected' && chromecast && (
+          {/* {state.connection.status === 'connected' && chromecast && (
             <div className="modal-connected-actions">
               <span>Conectado: {chromecast.name || chromecast.host}</span>
               <button type="button" onClick={handleDisconnect}>
                 Desconectar
               </button>
             </div>
-          )}
+          )} */}
 
           {state.discovery.status === 'scanning' &&
             chromecasts.length === 0 && (

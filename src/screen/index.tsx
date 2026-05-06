@@ -1,19 +1,20 @@
-import React, { useRef } from 'react';
-import { FiCast } from 'react-icons/fi';
+import React from 'react';
+import { FiCast, FiPlusCircle } from 'react-icons/fi';
 import { useRender } from '../services/Context';
 import Header from './Header';
 import ListDevices from './List';
 
 const Screen: React.FC = () => {
-  const { state } = useRender();
+  const { state, selectVideoFile } = useRender();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const isConnected = state.connection.status === 'connected';
 
   const openModal = React.useCallback(() => setIsModalOpen(true), []);
   const closeModal = React.useCallback(() => setIsModalOpen(false), []);
 
-  // eslint-disable-next-line no-unused-vars
-  const inputRef = useRef<HTMLInputElement>(null);
+  const handleSelectVideoFile = React.useCallback(async () => {
+    await selectVideoFile();
+  }, [selectVideoFile]);
 
   return (
     <>
@@ -29,6 +30,31 @@ const Screen: React.FC = () => {
           >
             <FiCast size={25} />
           </button>
+
+          <button
+            type="button"
+            className="videoBTN"
+            onClick={handleSelectVideoFile}
+            disabled={!isConnected}
+            title={
+              isConnected
+                ? 'Selecionar arquivo de video'
+                : 'Conecte em um dispositivo para selecionar video'
+            }
+          >
+            <FiPlusCircle />
+            Selecione vídeo
+          </button>
+
+          <div className="media-selection-info">
+            {state.media.fileName
+              ? `Arquivo selecionado: ${state.media.fileName}`
+              : 'Nenhum arquivo selecionado'}
+          </div>
+
+          {state.media.status === 'failed' && state.media.reason && (
+            <div className="media-selection-error">{state.media.reason}</div>
+          )}
         </div>
       </div>
 

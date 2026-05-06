@@ -108,6 +108,7 @@ contextBridge.exposeInMainWorld('render', {
     );
     startDiscovery(callback);
   },
+  pickVideoFile: () => ipcRenderer.invoke('pickVideoFile'),
   connectDevice: host => connectCastSession(host),
   disconnectDevice: () => disconnectCastSession(),
 });

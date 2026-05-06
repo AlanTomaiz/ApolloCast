@@ -1,5 +1,6 @@
 import React from 'react';
 import { IDevice, IService } from '../../@types/Render';
+import { SelectedVideoFile } from '../../@types/Window';
 import {
   castReducer,
   CastState,
@@ -16,6 +17,7 @@ interface IContext {
   setDevice: (device: IDevice) => void;
   connectToDevice: (device: IDevice) => Promise<boolean>;
   disconnectFromDevice: () => void;
+  selectVideoFile: () => Promise<boolean>;
   setConnectionStatus: (status: ConnectionStatus, reason?: string) => void;
   setMediaSelection: (filePath: string, fileName: string) => void;
   clearMediaSelection: () => void;
@@ -45,6 +47,9 @@ const toPtBrConnectionError = (error: unknown): string => {
 
   return 'Falha ao conectar ao dispositivo';
 };
+
+const toPtBrVideoPickerError = (): string =>
+  'Falha ao selecionar arquivo de video';
 
 const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
   children
@@ -110,6 +115,37 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
       status: 'disconnected'
     });
     console.info('[Cast] Fluxo de desconexao finalizado');
+  }, []);
+
+  const selectVideoFile = React.useCallback(async () => {
+    console.info('[Media] Fluxo de selecao de video iniciado');
+
+    try {
+      const selectedFile: SelectedVideoFile | null =
+        await window.render.pickVideoFile();
+
+      if (!selectedFile) {
+        console.info('[Media] Selecao de video cancelada pelo usuario');
+        return false;
+      }
+
+      dispatch({
+        type: 'MEDIA_SELECTED',
+        filePath: selectedFile.path,
+        fileName: selectedFile.name
+      });
+      dispatch({ type: 'MEDIA_STATUS_SET', status: 'stopped' });
+      console.info(`[Media] Video selecionado: ${selectedFile.name}`);
+      return true;
+    } catch (error) {
+      console.error('[Media] Falha ao selecionar video', error);
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: toPtBrVideoPickerError()
+      });
+      return false;
+    }
   }, []);
 
   const setConnectionStatus = React.useCallback(
@@ -211,6 +247,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
         setDevice,
         connectToDevice,
         disconnectFromDevice,
+        selectVideoFile,
         setConnectionStatus,
         setMediaSelection,
         clearMediaSelection,
