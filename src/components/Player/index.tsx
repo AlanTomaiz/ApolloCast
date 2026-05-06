@@ -1,5 +1,6 @@
 import React from 'react';
-import { FiPause, FiPlay, FiVolume2, FiX } from 'react-icons/fi';
+import { FaPause, FaPlay } from 'react-icons/fa';
+import { FiVolume2, FiX } from 'react-icons/fi';
 import { useRender } from '../../services/Context';
 import {
   ResolvedMediaMetadata,
@@ -234,19 +235,6 @@ const Player: React.FC = () => {
     [setStreamingVolume]
   );
 
-  const handleRetryStreaming = React.useCallback(async () => {
-    if (!hasMediaSelected) {
-      await selectVideoFile();
-      return;
-    }
-
-    await startStreaming();
-  }, [hasMediaSelected, selectVideoFile, startStreaming]);
-
-  const handlePickAnotherFile = React.useCallback(async () => {
-    await selectVideoFile();
-  }, [selectVideoFile]);
-
   return (
     <>
       <div className="player-box">
@@ -308,7 +296,7 @@ const Player: React.FC = () => {
                 onClick={handlePlayPause}
                 disabled={!isConnected || !hasMediaSelected || isStartingStream}
               >
-                {isStreaming ? <FiPause size={31} /> : <FiPlay size={31} />}
+                {isStreaming ? <FaPause size={31} /> : <FaPlay size={31} />}
               </button>
             </div>
 
