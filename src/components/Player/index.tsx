@@ -247,14 +247,6 @@ const Player: React.FC = () => {
             <FiX size={28} />
           </button>
 
-          {metadata?.imageUrl && (
-            <img
-              className="player-poster"
-              src={metadata.imageUrl}
-              alt={mediaTitle}
-            />
-          )}
-
           <div className="player-video-meta">
             <h2>{mediaTitle}</h2>
             {mediaSubtitle && <p>{mediaSubtitle}</p>}

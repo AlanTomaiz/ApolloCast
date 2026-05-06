@@ -143,7 +143,9 @@ Se a busca falhar, o app usa fallback local com o nome normalizado do arquivo.
 
 - `yarn start` -> ambiente de desenvolvimento
 - `yarn package` -> empacota o app sem instalador
-- `yarn make` -> gera artefatos de distribuicao
+- `yarn make` -> gera artefatos de distribuicao configurados no Forge
+- `yarn make:win` -> gera instalador Windows sem exibir warnings de deprecacao do Node
+- `yarn make:linux` -> gera pacote `.deb` no Linux
 - `yarn publish` -> fluxo de publicacao do Forge
 - `yarn lint` -> executa ESLint
 
