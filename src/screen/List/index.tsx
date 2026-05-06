@@ -9,21 +9,33 @@ interface IProps {
 }
 
 const ListDevices: React.FC<IProps> = ({ onClose }) => {
-  const { chromecasts, chromecast, setDevice, state } = useRender();
+  const {
+    chromecasts,
+    chromecast,
+    connectToDevice,
+    disconnectFromDevice,
+    state,
+  } = useRender();
 
   const handleSelectDevice = React.useCallback(
-    (deviceIndex: number) => {
+    async (deviceIndex: number) => {
       const targetDevice = chromecasts[deviceIndex];
 
       if (!targetDevice) {
         return;
       }
 
-      setDevice(targetDevice);
-      onClose();
+      const hasConnected = await connectToDevice(targetDevice);
+      if (hasConnected) {
+        onClose();
+      }
     },
-    [chromecasts, onClose, setDevice],
+    [chromecasts, connectToDevice, onClose],
   );
+
+  const handleDisconnect = React.useCallback(() => {
+    disconnectFromDevice();
+  }, [disconnectFromDevice]);
 
   const selectedDeviceId = chromecast ? getDeviceId(chromecast) : null;
 
@@ -36,6 +48,19 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
         </button>
         <div className="modal-title">Transmitir para:</div>
         <div className="modal-content">
+          {state.connection.status === 'failed' && state.connection.reason && (
+            <p className="modal-error">{state.connection.reason}</p>
+          )}
+
+          {state.connection.status === 'connected' && chromecast && (
+            <div className="modal-connected-actions">
+              <span>Conectado: {chromecast.name || chromecast.host}</span>
+              <button type="button" onClick={handleDisconnect}>
+                Desconectar
+              </button>
+            </div>
+          )}
+
           {state.discovery.status === 'scanning' && chromecasts.length === 0 && (
             <p className="modal-empty">Buscando dispositivos...</p>
           )}
@@ -56,6 +81,7 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
                       type="button"
                       className="device-item"
                       data-selected={isSelected}
+                      disabled={state.connection.status === 'connecting'}
                       onClick={() => handleSelectDevice(index)}
                     >
                       <BsCast />

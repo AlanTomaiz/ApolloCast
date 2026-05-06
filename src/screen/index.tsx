@@ -6,8 +6,9 @@ import ListDevices from './List';
 
 
 const Screen: React.FC = () => {
-  const { chromecast } = useRender();
+  const { state } = useRender();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const isConnected = state.connection.status === 'connected';
 
   const openModal = React.useCallback(() => setIsModalOpen(true), []);
   const closeModal = React.useCallback(() => setIsModalOpen(false), []);
@@ -24,7 +25,7 @@ const Screen: React.FC = () => {
           <button
             type="button"
             className="cast-conn"
-            data-connected={Boolean(chromecast)}
+            data-connected={isConnected}
             onClick={openModal}
           >
             <FiCast size={25} />

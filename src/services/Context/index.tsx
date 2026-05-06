@@ -15,6 +15,8 @@ interface IContext {
   chromecast: IDevice | undefined;
   chromecasts: IDevice[];
   setDevice: (device: IDevice) => void;
+  connectToDevice: (device: IDevice) => Promise<boolean>;
+  disconnectFromDevice: () => void;
   setConnectionStatus: (status: ConnectionStatus, reason?: string) => void;
   setMediaSelection: (filePath: string, fileName: string) => void;
   clearMediaSelection: () => void;
@@ -38,6 +40,41 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
 
   const setDevice = React.useCallback((device: IDevice) => {
     dispatch({ type: 'DEVICE_SELECTED', deviceId: getDeviceId(device) });
+  }, []);
+
+  const connectToDevice = React.useCallback(async (device: IDevice) => {
+    if (!device?.host) {
+      dispatch({
+        type: 'CONNECTION_STATUS_SET',
+        status: 'failed',
+        reason: 'Dispositivo invalido para conexao',
+      });
+      return false;
+    }
+
+    dispatch({ type: 'DEVICE_SELECTED', deviceId: getDeviceId(device) });
+    dispatch({ type: 'CONNECTION_STATUS_SET', status: 'connecting' });
+
+    try {
+      await window.render.connectDevice(device.host);
+      dispatch({ type: 'CONNECTION_STATUS_SET', status: 'connected' });
+      return true;
+    } catch (error) {
+      dispatch({
+        type: 'CONNECTION_STATUS_SET',
+        status: 'failed',
+        reason: error instanceof Error ? error.message : 'Falha ao conectar',
+      });
+      return false;
+    }
+  }, []);
+
+  const disconnectFromDevice = React.useCallback(() => {
+    window.render.disconnectDevice();
+    dispatch({
+      type: 'CONNECTION_STATUS_SET',
+      status: 'disconnected',
+    });
   }, []);
 
   const setConnectionStatus = React.useCallback(
@@ -87,7 +124,9 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
 
     return () => {
       window.render.stopDiscovery();
+      window.render.disconnectDevice();
       dispatch({ type: 'DISCOVERY_STOPPED' });
+      dispatch({ type: 'CONNECTION_STATUS_SET', status: 'disconnected' });
     };
   }, []);
 
@@ -98,6 +137,8 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
         chromecasts,
         chromecast,
         setDevice,
+        connectToDevice,
+        disconnectFromDevice,
         setConnectionStatus,
         setMediaSelection,
         clearMediaSelection,
