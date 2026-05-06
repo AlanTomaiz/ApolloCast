@@ -3,7 +3,6 @@ import { BsCast } from 'react-icons/bs';
 import { getDeviceId } from '../../renderer/state/castReducer';
 import { useRender } from '../../services/Context';
 
-
 interface IProps {
   onClose: () => void;
 }
@@ -14,7 +13,7 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
     chromecast,
     connectToDevice,
     disconnectFromDevice,
-    state,
+    state
   } = useRender();
 
   const handleSelectDevice = React.useCallback(
@@ -30,7 +29,7 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
         onClose();
       }
     },
-    [chromecasts, connectToDevice, onClose],
+    [chromecasts, connectToDevice, onClose]
   );
 
   const handleDisconnect = React.useCallback(() => {
@@ -61,13 +60,15 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
             </div>
           )}
 
-          {state.discovery.status === 'scanning' && chromecasts.length === 0 && (
-            <p className="modal-empty">Buscando dispositivos...</p>
-          )}
+          {state.discovery.status === 'scanning' &&
+            chromecasts.length === 0 && (
+              <p className="modal-empty">Buscando dispositivos...</p>
+            )}
 
-          {state.discovery.status !== 'scanning' && chromecasts.length === 0 && (
-            <p className="modal-empty">Nenhum dispositivo encontrado.</p>
-          )}
+          {state.discovery.status !== 'scanning' &&
+            chromecasts.length === 0 && (
+              <p className="modal-empty">Nenhum dispositivo encontrado.</p>
+            )}
 
           {chromecasts.length > 0 && (
             <ul>

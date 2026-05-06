@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-constructed-context-values */
 import React from 'react';
 import { IDevice, IService } from '../../@types/Render';
 import {
@@ -25,17 +24,19 @@ interface IContext {
 
 const APIContext = React.createContext<IContext>({} as IContext);
 
-const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) => {
+const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
+  children
+}) => {
   const [state, dispatch] = React.useReducer(castReducer, initialCastState);
 
   const chromecasts = state.discovery.devices;
   const chromecast = React.useMemo(
     () =>
       chromecasts.find(
-      currentDevice =>
-          getDeviceId(currentDevice) === state.connection.deviceId,
-    ),
-    [chromecasts, state.connection.deviceId],
+        (currentDevice) =>
+          getDeviceId(currentDevice) === state.connection.deviceId
+      ),
+    [chromecasts, state.connection.deviceId]
   );
 
   const setDevice = React.useCallback((device: IDevice) => {
@@ -47,7 +48,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
       dispatch({
         type: 'CONNECTION_STATUS_SET',
         status: 'failed',
-        reason: 'Dispositivo invalido para conexao',
+        reason: 'Dispositivo invalido para conexao'
       });
       return false;
     }
@@ -63,7 +64,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
       dispatch({
         type: 'CONNECTION_STATUS_SET',
         status: 'failed',
-        reason: error instanceof Error ? error.message : 'Falha ao conectar',
+        reason: error instanceof Error ? error.message : 'Falha ao conectar'
       });
       return false;
     }
@@ -73,7 +74,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
     window.render.disconnectDevice();
     dispatch({
       type: 'CONNECTION_STATUS_SET',
-      status: 'disconnected',
+      status: 'disconnected'
     });
   }, []);
 
@@ -81,14 +82,14 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
     (status: ConnectionStatus, reason?: string) => {
       dispatch({ type: 'CONNECTION_STATUS_SET', status, reason });
     },
-    [],
+    []
   );
 
   const setMediaSelection = React.useCallback(
     (filePath: string, fileName: string) => {
       dispatch({ type: 'MEDIA_SELECTED', filePath, fileName });
     },
-    [],
+    []
   );
 
   const clearMediaSelection = React.useCallback(() => {
@@ -99,7 +100,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
     (status: MediaStatus, reason?: string) => {
       dispatch({ type: 'MEDIA_STATUS_SET', status, reason });
     },
-    [],
+    []
   );
 
   React.useEffect(() => {
@@ -110,7 +111,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
         const newDevice = {
           host: service.addresses[0],
           name: service.txt.fn,
-          type: service.txt.md,
+          type: service.txt.md
         };
 
         dispatch({ type: 'DEVICE_FOUND', device: newDevice });
@@ -118,7 +119,8 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
     } catch (error) {
       dispatch({
         type: 'DISCOVERY_FAILED',
-        reason: error instanceof Error ? error.message : 'Failed to start discovery',
+        reason:
+          error instanceof Error ? error.message : 'Failed to start discovery'
       });
     }
 
@@ -142,7 +144,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({ children }) =>
         setConnectionStatus,
         setMediaSelection,
         clearMediaSelection,
-        setMediaStatus,
+        setMediaStatus
       }}
     >
       {children}

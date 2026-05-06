@@ -11,5 +11,5 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <APIProvider>
     <Screen />
-  </APIProvider>,
+  </APIProvider>
 );

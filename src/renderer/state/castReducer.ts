@@ -59,24 +59,24 @@ export const initialCastState: CastState = {
   discovery: {
     status: 'idle',
     devices: [],
-    reason: null,
+    reason: null
   },
   connection: {
     status: 'idle',
     deviceId: null,
-    reason: null,
+    reason: null
   },
   media: {
     status: 'idle',
     filePath: null,
     fileName: null,
-    reason: null,
-  },
+    reason: null
+  }
 };
 
 export const castReducer = (
   state: CastState,
-  action: CastAction,
+  action: CastAction
 ): CastState => {
   switch (action.type) {
     case 'DISCOVERY_STARTED':
@@ -85,8 +85,8 @@ export const castReducer = (
         discovery: {
           ...state.discovery,
           status: 'scanning',
-          reason: null,
-        },
+          reason: null
+        }
       };
 
     case 'DISCOVERY_STOPPED':
@@ -95,8 +95,8 @@ export const castReducer = (
         discovery: {
           ...state.discovery,
           status: 'stopped',
-          reason: null,
-        },
+          reason: null
+        }
       };
 
     case 'DISCOVERY_FAILED':
@@ -105,14 +105,14 @@ export const castReducer = (
         discovery: {
           ...state.discovery,
           status: 'failed',
-          reason: action.reason,
-        },
+          reason: action.reason
+        }
       };
 
     case 'DEVICE_FOUND': {
       const newDeviceId = getDeviceId(action.device);
       const alreadyExists = state.discovery.devices.some(
-        currentDevice => getDeviceId(currentDevice) === newDeviceId,
+        (currentDevice) => getDeviceId(currentDevice) === newDeviceId
       );
 
       if (alreadyExists) {
@@ -123,8 +123,8 @@ export const castReducer = (
         ...state,
         discovery: {
           ...state.discovery,
-          devices: [...state.discovery.devices, action.device],
-        },
+          devices: [...state.discovery.devices, action.device]
+        }
       };
     }
 
@@ -133,8 +133,8 @@ export const castReducer = (
         ...state,
         connection: {
           ...state.connection,
-          deviceId: action.deviceId,
-        },
+          deviceId: action.deviceId
+        }
       };
 
     case 'CONNECTION_STATUS_SET':
@@ -143,8 +143,8 @@ export const castReducer = (
         connection: {
           ...state.connection,
           status: action.status,
-          reason: action.reason ?? null,
-        },
+          reason: action.reason ?? null
+        }
       };
 
     case 'MEDIA_SELECTED':
@@ -154,8 +154,8 @@ export const castReducer = (
           ...state.media,
           filePath: action.filePath,
           fileName: action.fileName,
-          reason: null,
-        },
+          reason: null
+        }
       };
 
     case 'MEDIA_CLEARED':
@@ -166,8 +166,8 @@ export const castReducer = (
           status: 'idle',
           filePath: null,
           fileName: null,
-          reason: null,
-        },
+          reason: null
+        }
       };
 
     case 'MEDIA_STATUS_SET':
@@ -176,8 +176,8 @@ export const castReducer = (
         media: {
           ...state.media,
           status: action.status,
-          reason: action.reason ?? null,
-        },
+          reason: action.reason ?? null
+        }
       };
 
     default:

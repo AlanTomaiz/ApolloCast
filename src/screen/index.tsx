@@ -4,7 +4,6 @@ import { useRender } from '../services/Context';
 import Header from './Header';
 import ListDevices from './List';
 
-
 const Screen: React.FC = () => {
   const { state } = useRender();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
