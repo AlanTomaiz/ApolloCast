@@ -62,6 +62,81 @@ const stopMediaPlayback = () => {
   stopMediaServer();
 };
 
+const pauseMediaPlayback = () =>
+  new Promise((resolve, reject) => {
+    if (!activeMediaPlayer) {
+      reject(new Error('Nenhum player ativo para pausar'));
+      return;
+    }
+
+    activeMediaPlayer.pause((pauseError) => {
+      if (pauseError) {
+        reject(pauseError);
+        return;
+      }
+
+      console.info('[Media] Transmissao pausada');
+      resolve();
+    });
+  });
+
+const resumeMediaPlayback = () =>
+  new Promise((resolve, reject) => {
+    if (!activeMediaPlayer) {
+      reject(new Error('Nenhum player ativo para retomar'));
+      return;
+    }
+
+    activeMediaPlayer.play((playError) => {
+      if (playError) {
+        reject(playError);
+        return;
+      }
+
+      console.info('[Media] Transmissao retomada');
+      resolve();
+    });
+  });
+
+const getMediaPlaybackStatus = () =>
+  new Promise((resolve, reject) => {
+    if (!activeMediaPlayer) {
+      resolve(null);
+      return;
+    }
+
+    activeMediaPlayer.getStatus((statusError, status) => {
+      if (statusError) {
+        reject(statusError);
+        return;
+      }
+
+      resolve({
+        currentTime: Number(status?.currentTime || 0),
+        duration: Number(status?.media?.duration || 0),
+        playerState: status?.playerState || 'UNKNOWN'
+      });
+    });
+  });
+
+const seekMediaPlayback = (seconds) =>
+  new Promise((resolve, reject) => {
+    if (!activeMediaPlayer) {
+      reject(new Error('Nenhum player ativo para avancar tempo'));
+      return;
+    }
+
+    activeMediaPlayer.seek(seconds, (seekError) => {
+      if (seekError) {
+        reject(seekError);
+        return;
+      }
+
+      console.info(`[Media] Posicao alterada para ${seconds}s`);
+      resolve();
+    });
+  });
+
 const startMediaServer = filePath =>
   new Promise((resolve, reject) => {
     const localIpAddress = getLocalIpAddress();
@@ -311,6 +386,10 @@ contextBridge.exposeInMainWorld('render', {
   pickVideoFile: () => ipcRenderer.invoke('pickVideoFile'),
   startStreaming: (filePath, fileName) =>
     startCastStreaming(filePath, fileName),
+  pauseStreaming: () => pauseMediaPlayback(),
+  resumeStreaming: () => resumeMediaPlayback(),
+  getStreamingStatus: () => getMediaPlaybackStatus(),
+  seekStreaming: (seconds) => seekMediaPlayback(seconds),
   stopStreaming: () => stopMediaPlayback(),
   connectDevice: host => connectCastSession(host),
   disconnectDevice: () => disconnectCastSession(),

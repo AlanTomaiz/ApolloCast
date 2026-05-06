@@ -12,6 +12,10 @@ const Player: React.FC = () => {
     state,
     chromecast,
     startStreaming,
+    pauseStreaming,
+    resumeStreaming,
+    getStreamingStatus,
+    seekStreaming,
     stopStreaming,
     clearMediaSelection
   } = useRender();
@@ -20,27 +24,47 @@ const Player: React.FC = () => {
   const [metadata, setMetadata] = React.useState<ResolvedMediaMetadata | null>(
     null
   );
+  const [currentTime, setCurrentTime] = React.useState(0);
+  const [duration, setDuration] = React.useState(0);
+  const [isSeeking, setIsSeeking] = React.useState(false);
+  const [previewSeekTime, setPreviewSeekTime] = React.useState(0);
   const isConnected = state.connection.status === 'connected';
   const hasMediaSelected = Boolean(state.media.filePath);
   const isStreaming = state.media.status === 'playing';
+  const isPaused = state.media.status === 'paused';
   const isStartingStream = state.media.status === 'loading';
 
   const handleStartStreaming = React.useCallback(async () => {
     await startStreaming();
   }, [startStreaming]);
 
-  const handleStopStreaming = React.useCallback(() => {
-    stopStreaming();
-  }, [stopStreaming]);
+  const handlePauseStreaming = React.useCallback(async () => {
+    await pauseStreaming();
+  }, [pauseStreaming]);
+
+  const handleResumeStreaming = React.useCallback(async () => {
+    await resumeStreaming();
+  }, [resumeStreaming]);
 
   const handlePlayPause = React.useCallback(async () => {
     if (isStreaming) {
-      handleStopStreaming();
+      await handlePauseStreaming();
+      return;
+    }
+
+    if (isPaused) {
+      await handleResumeStreaming();
       return;
     }
 
     await handleStartStreaming();
-  }, [handleStartStreaming, handleStopStreaming, isStreaming]);
+  }, [
+    handlePauseStreaming,
+    handleResumeStreaming,
+    handleStartStreaming,
+    isPaused,
+    isStreaming
+  ]);
 
   const handleClosePlayer = React.useCallback(() => {
     if (isStreaming || isStartingStream) {
@@ -48,7 +72,13 @@ const Player: React.FC = () => {
     }
 
     clearMediaSelection();
-  }, [clearMediaSelection, isStartingStream, isStreaming, stopStreaming]);
+  }, [
+    clearMediaSelection,
+    isPaused,
+    isStartingStream,
+    isStreaming,
+    stopStreaming
+  ]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -75,6 +105,77 @@ const Player: React.FC = () => {
 
   const mediaTitle = metadata?.title || 'Sem titulo';
   const mediaSubtitle = metadata?.kind === 'series' ? metadata.subtitle : null;
+
+  const displayCurrentTime = isSeeking ? previewSeekTime : currentTime;
+  const progressPercent =
+    duration > 0 ? Math.min((displayCurrentTime / duration) * 100, 100) : 0;
+
+  const formatTime = React.useCallback((seconds: number) => {
+    const safeSeconds = Math.max(0, Math.floor(seconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const remainingSeconds = safeSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(
+        remainingSeconds
+      ).padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+  }, []);
+
+  const syncPlaybackStatus = React.useCallback(async () => {
+    const playbackStatus = await getStreamingStatus();
+
+    if (!playbackStatus) {
+      if (!hasMediaSelected) {
+        setCurrentTime(0);
+        setDuration(0);
+      }
+      return;
+    }
+
+    setCurrentTime(playbackStatus.currentTime || 0);
+    setDuration(playbackStatus.duration || 0);
+  }, [getStreamingStatus, hasMediaSelected]);
+
+  React.useEffect(() => {
+    if (!hasMediaSelected || isSeeking) {
+      return undefined;
+    }
+
+    syncPlaybackStatus();
+    const timer = window.setInterval(syncPlaybackStatus, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [hasMediaSelected, isSeeking, syncPlaybackStatus]);
+
+  const handleProgressChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setIsSeeking(true);
+      setPreviewSeekTime(Number(event.target.value));
+    },
+    []
+  );
+
+  const commitSeek = React.useCallback(
+    async (event: React.SyntheticEvent<HTMLInputElement>) => {
+      const nextTime = Number(event.currentTarget.value);
+      const didSeek = await seekStreaming(nextTime);
+
+      if (didSeek) {
+        setCurrentTime(nextTime);
+      }
+
+      setPreviewSeekTime(0);
+      setIsSeeking(false);
+      syncPlaybackStatus();
+    },
+    [seekStreaming, syncPlaybackStatus]
+  );
 
   return (
     <>
@@ -107,12 +208,26 @@ const Player: React.FC = () => {
 
         <div className="player-panel-bottom">
           <div className="player-time-row">
-            <span>4:52</span>
-            <div className="player-time-track">
-              <div className="player-time-progress" />
-              <div className="player-time-thumb" />
-            </div>
-            <span>55:15</span>
+            <span>{formatTime(displayCurrentTime)}</span>
+            <input
+              className="player-progress-slider"
+              type="range"
+              style={{
+                background: `linear-gradient(to right, #f08a22 0%, #f08a22 ${progressPercent}%, rgba(255, 255, 255, 0.25) ${progressPercent}%, rgba(255, 255, 255, 0.25) 100%)`
+              }}
+              min={0}
+              max={Math.max(duration, 0)}
+              step={1}
+              value={Math.min(
+                displayCurrentTime,
+                duration || displayCurrentTime
+              )}
+              onChange={handleProgressChange}
+              onMouseUp={commitSeek}
+              onTouchEnd={commitSeek}
+              disabled={!hasMediaSelected || isStartingStream || duration <= 0}
+            />
+            <span>{formatTime(duration)}</span>
           </div>
 
           <div className="player-controls-row">

@@ -1,6 +1,6 @@
 import React from 'react';
 import { IDevice, IService } from '../../@types/Render';
-import { SelectedVideoFile } from '../../@types/Window';
+import { SelectedVideoFile, StreamingStatus } from '../../@types/Window';
 import {
   castReducer,
   CastState,
@@ -19,6 +19,10 @@ interface IContext {
   disconnectFromDevice: () => void;
   selectVideoFile: () => Promise<boolean>;
   startStreaming: () => Promise<boolean>;
+  pauseStreaming: () => Promise<boolean>;
+  resumeStreaming: () => Promise<boolean>;
+  getStreamingStatus: () => Promise<StreamingStatus | null>;
+  seekStreaming: (seconds: number) => Promise<boolean>;
   stopStreaming: () => void;
   setConnectionStatus: (status: ConnectionStatus, reason?: string) => void;
   setMediaSelection: (filePath: string, fileName: string) => void;
@@ -73,6 +77,14 @@ const toPtBrStreamingError = (error: unknown): string => {
   }
 
   return 'Falha ao iniciar transmissao';
+};
+
+const toPtBrPlaybackControlError = (action: 'pause' | 'resume'): string => {
+  if (action === 'pause') {
+    return 'Falha ao pausar transmissao';
+  }
+
+  return 'Falha ao retomar transmissao';
 };
 
 const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
@@ -158,19 +170,35 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
         filePath: selectedFile.path,
         fileName: selectedFile.name
       });
-      dispatch({ type: 'MEDIA_STATUS_SET', status: 'stopped' });
-      console.info(`[Media] Video selecionado: ${selectedFile.name}`);
+
+      if (state.connection.status !== 'connected') {
+        dispatch({ type: 'MEDIA_STATUS_SET', status: 'stopped' });
+        console.info(`[Media] Video selecionado: ${selectedFile.name}`);
+        return true;
+      }
+
+      dispatch({ type: 'MEDIA_STATUS_SET', status: 'loading' });
+
+      await window.render.startStreaming(selectedFile.path, selectedFile.name);
+      dispatch({ type: 'MEDIA_STATUS_SET', status: 'playing' });
+      console.info(
+        `[Media] Video selecionado e transmissao iniciada: ${selectedFile.name}`
+      );
       return true;
     } catch (error) {
       console.error('[Media] Falha ao selecionar video', error);
       dispatch({
         type: 'MEDIA_STATUS_SET',
         status: 'failed',
-        reason: toPtBrVideoPickerError()
+        reason:
+          error instanceof Error &&
+          error.message.toLowerCase().includes('transmiss')
+            ? toPtBrStreamingError(error)
+            : toPtBrVideoPickerError()
       });
       return false;
     }
-  }, []);
+  }, [state.connection.status]);
 
   const startStreaming = React.useCallback(async () => {
     if (state.connection.status !== 'connected') {
@@ -217,6 +245,92 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
     dispatch({ type: 'MEDIA_STATUS_SET', status: 'stopped' });
     console.info('[Media] Transmissao interrompida');
   }, []);
+
+  const getStreamingStatus = React.useCallback(async () => {
+    try {
+      return await window.render.getStreamingStatus();
+    } catch (error) {
+      console.error('[Media] Falha ao consultar status de reproducao', error);
+      return null;
+    }
+  }, []);
+
+  const seekStreaming = React.useCallback(
+    async (seconds: number) => {
+      if (state.connection.status !== 'connected') {
+        dispatch({
+          type: 'MEDIA_STATUS_SET',
+          status: 'failed',
+          reason: 'Conecte em um dispositivo para avancar video'
+        });
+        return false;
+      }
+
+      try {
+        await window.render.seekStreaming(seconds);
+        return true;
+      } catch (error) {
+        console.error('[Media] Falha ao alterar tempo da transmissao', error);
+        dispatch({
+          type: 'MEDIA_STATUS_SET',
+          status: 'failed',
+          reason: 'Falha ao alterar tempo da transmissao'
+        });
+        return false;
+      }
+    },
+    [state.connection.status]
+  );
+
+  const pauseStreaming = React.useCallback(async () => {
+    if (state.connection.status !== 'connected') {
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: 'Conecte em um dispositivo para pausar transmissao'
+      });
+      return false;
+    }
+
+    try {
+      await window.render.pauseStreaming();
+      dispatch({ type: 'MEDIA_STATUS_SET', status: 'paused' });
+      return true;
+    } catch (error) {
+      console.error('[Media] Falha ao pausar transmissao', error);
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: toPtBrPlaybackControlError('pause')
+      });
+      return false;
+    }
+  }, [state.connection.status]);
+
+  const resumeStreaming = React.useCallback(async () => {
+    if (state.connection.status !== 'connected') {
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: 'Conecte em um dispositivo para retomar transmissao'
+      });
+      return false;
+    }
+
+    try {
+      await window.render.resumeStreaming();
+      dispatch({ type: 'MEDIA_STATUS_SET', status: 'playing' });
+      return true;
+    } catch (error) {
+      console.error('[Media] Falha ao retomar transmissao', error);
+      dispatch({
+        type: 'MEDIA_STATUS_SET',
+        status: 'failed',
+        reason: toPtBrPlaybackControlError('resume')
+      });
+      return false;
+    }
+  }, [state.connection.status]);
 
   const setConnectionStatus = React.useCallback(
     (status: ConnectionStatus, reason?: string) => {
@@ -320,6 +434,10 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
         disconnectFromDevice,
         selectVideoFile,
         startStreaming,
+        pauseStreaming,
+        resumeStreaming,
+        getStreamingStatus,
+        seekStreaming,
         stopStreaming,
         setConnectionStatus,
         setMediaSelection,

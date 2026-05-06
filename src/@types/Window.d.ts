@@ -8,6 +8,12 @@ export interface SelectedVideoFile {
   name: string;
 }
 
+export interface StreamingStatus {
+  currentTime: number;
+  duration: number;
+  playerState: string;
+}
+
 declare global {
   interface Window {
     render: {
@@ -19,6 +25,10 @@ declare global {
       scanner: (callback: DiscoveryCallback) => void;
       pickVideoFile: () => Promise<SelectedVideoFile | null>;
       startStreaming: (filePath: string, fileName?: string) => Promise<void>;
+      pauseStreaming: () => Promise<void>;
+      resumeStreaming: () => Promise<void>;
+      getStreamingStatus: () => Promise<StreamingStatus | null>;
+      seekStreaming: (seconds: number) => Promise<void>;
       stopStreaming: () => void;
       connectDevice: (host: string) => Promise<void>;
       disconnectDevice: () => void;
