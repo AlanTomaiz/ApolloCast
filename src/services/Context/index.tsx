@@ -17,6 +17,7 @@ interface IContext {
   setDevice: (device: IDevice) => void;
   connectToDevice: (device: IDevice) => Promise<boolean>;
   disconnectFromDevice: () => void;
+  restartDiscovery: () => void;
   selectVideoFile: () => Promise<boolean>;
   startStreaming: () => Promise<boolean>;
   pauseStreaming: () => Promise<boolean>;
@@ -156,6 +157,37 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
     });
     console.info('[Cast] Fluxo de desconexao finalizado');
   }, []);
+
+  const handleDiscoveryService = React.useCallback((service: IService) => {
+    const host = service.addresses?.[0];
+    const name = service.txt?.fn;
+    const type = service.txt?.md;
+
+    if (!host || !name || !type) {
+      console.warn(
+        '[Discovery] Ignorando payload de servico malformado',
+        service
+      );
+      return;
+    }
+
+    dispatch({
+      type: 'DEVICE_FOUND',
+      device: {
+        host,
+        name,
+        type
+      }
+    });
+  }, []);
+
+  const restartDiscovery = React.useCallback(() => {
+    console.info('[Discovery] Reiniciando busca de dispositivos');
+    window.render.stopDiscovery();
+    dispatch({ type: 'DISCOVERY_RESET' });
+    dispatch({ type: 'DISCOVERY_STARTED' });
+    window.render.startDiscovery(handleDiscoveryService);
+  }, [handleDiscoveryService]);
 
   const selectVideoFile = React.useCallback(async () => {
     console.info('[Media] Fluxo de selecao de video iniciado');
@@ -415,28 +447,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
           '[Discovery] Janela principal totalmente carregada, iniciando scan'
         );
 
-        window.render.startDiscovery((service: IService) => {
-          const host = service.addresses?.[0];
-          const name = service.txt?.fn;
-          const type = service.txt?.md;
-
-          if (!host || !name || !type) {
-            console.warn(
-              '[Discovery] Ignorando payload de servico malformado',
-              service
-            );
-            return;
-          }
-
-          dispatch({
-            type: 'DEVICE_FOUND',
-            device: {
-              host,
-              name,
-              type
-            }
-          });
-        });
+        window.render.startDiscovery(handleDiscoveryService);
       } catch (error) {
         console.error('[Discovery] Falha ao iniciar discovery', error);
         dispatch({
@@ -461,7 +472,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
       dispatch({ type: 'CONNECTION_STATUS_SET', status: 'disconnected' });
       console.info('[Discovery] Cleanup finalizado');
     };
-  }, []);
+  }, [handleDiscoveryService]);
 
   return (
     <APIContext.Provider
@@ -472,6 +483,7 @@ const APIProvider: React.FC<React.PropsWithChildren<object>> = ({
         setDevice,
         connectToDevice,
         disconnectFromDevice,
+        restartDiscovery,
         selectVideoFile,
         startStreaming,
         pauseStreaming,

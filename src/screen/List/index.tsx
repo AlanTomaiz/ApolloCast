@@ -13,6 +13,7 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
     chromecast,
     connectToDevice,
     disconnectFromDevice,
+    restartDiscovery,
     state
   } = useRender();
 
@@ -36,6 +37,22 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
     disconnectFromDevice();
   }, [disconnectFromDevice]);
 
+  const handleRetryConnection = React.useCallback(async () => {
+    if (!chromecast) {
+      restartDiscovery();
+      return;
+    }
+
+    const hasConnected = await connectToDevice(chromecast);
+    if (hasConnected) {
+      onClose();
+    }
+  }, [chromecast, connectToDevice, onClose, restartDiscovery]);
+
+  const handleRetryDiscovery = React.useCallback(() => {
+    restartDiscovery();
+  }, [restartDiscovery]);
+
   const selectedDeviceId = chromecast ? getDeviceId(chromecast) : null;
 
   return (
@@ -48,7 +65,17 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
         <div className="modal-title">Transmitir para:</div>
         <div className="modal-content">
           {state.connection.status === 'failed' && state.connection.reason && (
-            <p className="modal-error">{state.connection.reason}</p>
+            <div className="modal-feedback-card modal-feedback-error">
+              <p className="modal-error">{state.connection.reason}</p>
+              <div className="modal-feedback-actions">
+                <button type="button" onClick={handleRetryConnection}>
+                  Tentar novamente
+                </button>
+                <button type="button" onClick={handleRetryDiscovery}>
+                  Buscar novamente
+                </button>
+              </div>
+            </div>
           )}
 
           {/* {state.connection.status === 'connected' && chromecast && (
@@ -67,7 +94,14 @@ const ListDevices: React.FC<IProps> = ({ onClose }) => {
 
           {state.discovery.status !== 'scanning' &&
             chromecasts.length === 0 && (
-              <p className="modal-empty">Nenhum dispositivo encontrado.</p>
+              <div className="modal-feedback-card">
+                <p className="modal-empty">Nenhum dispositivo encontrado.</p>
+                <div className="modal-feedback-actions">
+                  <button type="button" onClick={handleRetryDiscovery}>
+                    Buscar novamente
+                  </button>
+                </div>
+              </div>
             )}
 
           {chromecasts.length > 0 && (

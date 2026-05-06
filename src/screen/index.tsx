@@ -55,7 +55,7 @@ const Screen: React.FC = () => {
               </button>
             )}
 
-            {hasMediaSelected && <Player />}
+            {hasMediaSelected && !isStartingStream && <Player />}
           </LoadingOverlay>
         </div>
       </div>

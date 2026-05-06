@@ -11,6 +11,7 @@ const Player: React.FC = () => {
   const {
     state,
     chromecast,
+    selectVideoFile,
     startStreaming,
     pauseStreaming,
     resumeStreaming,
@@ -233,6 +234,19 @@ const Player: React.FC = () => {
     [setStreamingVolume]
   );
 
+  const handleRetryStreaming = React.useCallback(async () => {
+    if (!hasMediaSelected) {
+      await selectVideoFile();
+      return;
+    }
+
+    await startStreaming();
+  }, [hasMediaSelected, selectVideoFile, startStreaming]);
+
+  const handlePickAnotherFile = React.useCallback(async () => {
+    await selectVideoFile();
+  }, [selectVideoFile]);
+
   return (
     <>
       <div className="player-box">
@@ -320,8 +334,8 @@ const Player: React.FC = () => {
       </div>
 
       {state.media.status === 'failed' && state.media.reason && (
-        <div className="media-selection-error player-feedback-error">
-          {state.media.reason}
+        <div className="player-feedback-error">
+          <p className="player-feedback-error-text">{state.media.reason}</p>
         </div>
       )}
     </>

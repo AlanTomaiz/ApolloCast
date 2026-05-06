@@ -264,6 +264,48 @@ body, input, button {
   font-size: 12px;
 }
 
+.modal-feedback-card {
+  margin: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modal-feedback-error {
+  border-color: rgba(255, 126, 126, 0.22);
+  background: rgba(90, 28, 39, 0.18);
+}
+
+.modal-feedback-card .modal-empty,
+.modal-feedback-card .modal-error {
+  margin: 0;
+}
+
+.modal-feedback-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.modal-feedback-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: #eef1ff;
+  background: #4758ba;
+  cursor: pointer;
+}
+
+.modal-feedback-actions button:last-child {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.modal-feedback-actions button:hover {
+  filter: brightness(1.08);
+}
+
 .modal-connected-actions {
   margin: 8px;
   padding: 8px;

@@ -43,6 +43,7 @@ export interface CastState {
 
 export type CastAction =
   | { type: 'DISCOVERY_STARTED' }
+  | { type: 'DISCOVERY_RESET' }
   | { type: 'DISCOVERY_STOPPED' }
   | { type: 'DISCOVERY_FAILED'; reason: string }
   | { type: 'DEVICE_FOUND'; device: IDevice }
@@ -85,6 +86,16 @@ export const castReducer = (
         discovery: {
           ...state.discovery,
           status: 'scanning',
+          reason: null
+        }
+      };
+
+    case 'DISCOVERY_RESET':
+      return {
+        ...state,
+        discovery: {
+          status: 'idle',
+          devices: [],
           reason: null
         }
       };

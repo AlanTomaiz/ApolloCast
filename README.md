@@ -1,21 +1,26 @@
 # ApolloCast
 
-Aplicativo desktop com Electron + React para descobrir dispositivos Google Cast na rede local e preparar o fluxo de transmissao.
+Aplicativo desktop com Electron + React para descobrir dispositivos Google Cast, conectar a um receiver na rede local e transmitir um arquivo de video selecionado no computador.
 
 ## Visao geral
 
 O projeto usa uma arquitetura classica de Electron com separacao entre:
 
-- **Main process**: cria e controla a janela do app.
-- **Preload**: expoe uma API segura para a interface via `contextBridge`.
-- **Renderer (React)**: renderiza a UI e consome a API exposta no preload.
+- **Main process**: cria e controla a janela do app e expõe IPC para a interface.
+- **Preload**: faz a ponte segura entre renderer e recursos Node.js/Chromecast.
+- **Renderer (React)**: renderiza a UI, consome o contexto global e orquestra o fluxo de transmissao.
 
-Atualmente, o app:
+Atualmente, o app suporta:
 
-- Inicia uma janela customizada (sem frame nativo).
-- Permite minimizar e fechar pela barra superior customizada.
-- Faz descoberta de dispositivos Google Cast com `bonjour`.
-- Mantem os dispositivos encontrados em contexto React.
+- descoberta de dispositivos Google Cast com `bonjour`
+- conexao e reconexao com dispositivos encontrados
+- selecao de arquivo de video pelo dialog do sistema
+- start automatico da transmissao ao selecionar o arquivo
+- pausa, retomada, stop, seek e volume em tempo real
+- metadata online do arquivo selecionado (titulo, subtitulo e capa)
+- capa como background dinamico da interface quando disponivel
+- loader de tela inteira durante o inicio da transmissao
+- feedback de erro com acoes de retry no player e no modal de dispositivos
 
 ## Stack
 
@@ -24,88 +29,129 @@ Atualmente, o app:
 - React 18
 - TypeScript
 - Bonjour (mDNS/zeroconf)
+- castv2-client
 - React Icons
 
 ## Estrutura do projeto
 
 ```text
 src/
-  index.ts                  # Main process (Electron)
-  preload.js                # Bridge segura para o renderer
-  renderer.ts               # Entrada do React
-  App.tsx                   # Import do app renderer
-  index.css                 # Estilos globais
+  index.ts                        # Main process (Electron)
+  preload.js                      # Bridge segura + cast/discovery/stream local
+  renderer.ts                     # Entrada do React
+  App.tsx                         # Root component
+  index.css                       # Estilos globais
+  components/
+    LoadingOverlay/              # Loader compartilhado com blur do conteudo
+    Player/                      # Player principal e controles da transmissao
   screen/
-    index.tsx               # Tela principal
-    Header/index.tsx        # Barra superior customizada (acoes janela)
-    List/index.tsx          # Lista/modal de dispositivos (ainda nao integrada)
+    index.tsx                    # Tela principal
+    Header/index.tsx             # Barra superior customizada
+    List/index.tsx               # Modal/lista de dispositivos e retry de conexao
   services/
-    Context/index.tsx       # Estado global (dispositivos e dispositivo ativo)
+    Context/index.tsx            # Estado global e orchestration do fluxo Cast
+    Metadata/index.ts            # Parse do nome do arquivo + metadata online
+  renderer/
+    state/castReducer.ts         # Reducer e tipos de estado de discovery/conexao/media
   @types/
-    Render.ts               # Tipos de dispositivo/servico
-    Window.d.ts             # Tipagem global da API exposta em window
+    Render.ts                    # Tipos de dispositivo/servico
+    Window.d.ts                  # Tipagem global da API exposta em window
 ```
 
-## Como funciona
+## Fluxo funcional
 
-### 1) Main process (`src/index.ts`)
+### 1) Main process
 
-- Cria `BrowserWindow` com:
-  - `frame: false`
-  - `transparent: true`
-  - `resizable: false`
-  - `contextIsolation: true`
-  - `nodeIntegration: false`
-- Registra handlers IPC:
-  - `closeApp` -> encerra o app.
-  - `minimize` -> minimiza a janela.
+`src/index.ts` cria a `BrowserWindow` customizada e registra IPC para:
 
-### 2) Preload (`src/preload.js`)
+- fechar a aplicacao
+- minimizar a janela
+- aguardar a janela principal estar pronta
+- abrir o seletor de arquivos de video
 
-A API `window.render` e exposta com:
+### 2) Preload
 
-- `close()` -> chama `ipcRenderer.invoke('closeApp')`
-- `minimize()` -> chama `ipcRenderer.invoke('minimize')`
-- `scanner(callback)` -> inicia `bonjour().find({ type: 'googlecast' }, callback)`
+`src/preload.js` expõe a API `window.render` e concentra a integracao com:
 
-### 3) Renderer (`src/renderer.ts`)
+- `bonjour` para discovery
+- `castv2-client` para conexao e controle do receiver
+- servidor HTTP local para servir o arquivo ao Chromecast
 
-- Renderiza o React com `APIProvider` (contexto global).
-- Exibe a tela principal `Screen`.
+API exposta atualmente:
 
-### 4) Contexto de dispositivos (`src/services/Context/index.tsx`)
+- `startDiscovery(callback)`
+- `stopDiscovery()`
+- `pickVideoFile()`
+- `connectDevice(host)`
+- `disconnectDevice()`
+- `startStreaming(filePath, fileName?)`
+- `pauseStreaming()`
+- `resumeStreaming()`
+- `stopStreaming()`
+- `getStreamingStatus()`
+- `seekStreaming(seconds)`
+- `getStreamingVolume()`
+- `setStreamingVolume(volumeLevel)`
 
-No `useEffect` inicial:
+### 3) Contexto global
 
-- Chama `window.render.scanner(...)`
-- Para cada servico encontrado, mapeia para:
-  - `host` (primeiro endereco)
-  - `name` (`txt.fn`)
-  - `type` (`txt.md`)
-- Adiciona ao array `chromecasts`.
+`src/services/Context/index.tsx` centraliza o estado e as acoes de dominio:
 
-Tambem expoe:
+- discovery de dispositivos
+- conexao/desconexao de cast
+- reinicio manual do discovery
+- selecao de video
+- start automatico da transmissao apos selecionar arquivo
+- controle de pausa, resume, seek, stop e volume
+- mensagens de erro em PT-BR
 
-- `chromecasts`: lista de dispositivos descobertos.
-- `chromecast`: dispositivo selecionado.
-- `setDevice(device)`: define o dispositivo ativo.
+### 4) Tela principal
+
+`src/screen/index.tsx` renderiza:
+
+- botao de cast sempre visivel
+- botao de selecionar video antes da selecao
+- `Player` somente quando ha midia selecionada e o stream nao esta em loading
+- `LoadingOverlay` durante o inicio da transmissao
+
+### 5) Player
+
+`src/components/Player/index.tsx` mostra:
+
+- metadata do arquivo resolvida online
+- capa do conteudo
+- titulo corrigido
+- subtitulo de temporada/episodio para series
+- controle real de play/pause
+- progresso real com seek
+- controle real de volume
+- feedback de erro com retry e reselecao de arquivo
+
+## Metadata online
+
+`src/services/Metadata/index.ts` faz duas etapas:
+
+1. Parse do nome bruto do arquivo, identificando padroes como `S03E01` ou `3x01`.
+2. Busca online para enriquecer a exibicao:
+
+- series: TVMaze
+- filmes: iTunes Search API
+
+Se a busca falhar, o app usa fallback local com o nome normalizado do arquivo.
 
 ## Scripts
 
-No `package.json`:
-
-- `yarn start` -> ambiente de desenvolvimento (Electron Forge).
-- `yarn package` -> empacota app sem instalador.
-- `yarn make` -> gera artefatos de distribuicao (Squirrel/ZIP/DEB/RPM).
-- `yarn publish` -> fluxo de publicacao do Forge.
-- `yarn lint` -> executa ESLint em `.ts` e `.tsx`.
-
-Voce tambem pode usar `npm run <script>` se preferir npm.
+- `yarn start` -> ambiente de desenvolvimento
+- `yarn package` -> empacota o app sem instalador
+- `yarn make` -> gera artefatos de distribuicao
+- `yarn publish` -> fluxo de publicacao do Forge
+- `yarn lint` -> executa ESLint
 
 ## Requisitos
 
-- Node.js (recomendado: LTS)
-- Yarn (opcional, mas ha `yarn.lock` no repositorio)
+- Node.js LTS
+- Yarn
+- rede local com suporte a mDNS para discovery
 
 ## Como executar
 
@@ -121,21 +167,19 @@ yarn
 yarn start
 ```
 
-3. (Opcional) Gere pacote de distribuicao:
+3. Gere pacote de distribuicao, se necessario:
 
 ```bash
-yarn make
+yarn package
 ```
 
-## Estado atual e proximos passos
+## Estado atual
 
-O projeto ja possui a base de descoberta de dispositivos e controle da janela, mas alguns pontos ainda podem evoluir:
+O projeto ja cobre discovery, conexao, selecao de arquivo, transmissao, metadata, controles de playback, loader e retry basico. Os proximos passos naturais sao:
 
-- Integrar de fato o componente de lista/modal (`screen/List`) na tela principal.
-- Evitar duplicidade de dispositivos durante o scan (deduplicacao por host/nome).
-- Tratar ciclo de vida do scanner (start/stop/cleanup).
-- Ajustar tipagens de `window.render.scanner` para refletir callback corretamente.
-- Revisar detalhes visuais/variaveis CSS (`--grey` vs `--gray`).
+- revisar e expandir documentacao de build/distribuicao por plataforma
+- validar fluxo ponta a ponta em rede real com Chromecast acessivel
+- melhorar observabilidade do playback com eventos de estado do receiver
 
 ## Licenca
 
