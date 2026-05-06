@@ -144,3 +144,102 @@ body, input, button {
 .cast-conn:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+.modal {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+}
+
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-container {
+  position: relative;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #1f242b;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.modal-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: transparent;
+  color: #cfd4d9;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-title {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.modal-content {
+  padding: 8px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.modal-content ul {
+  list-style: none;
+}
+
+.modal-content li + li {
+  margin-top: 6px;
+}
+
+.modal-empty {
+  margin: 10px 8px;
+  color: #cfd4d9;
+  font-size: 13px;
+}
+
+.device-item {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e1e1e6;
+  cursor: pointer;
+  text-align: left;
+}
+
+.device-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.device-item[data-selected='true'] {
+  border-color: var(--green);
+  background: rgba(103, 228, 128, 0.12);
+}
